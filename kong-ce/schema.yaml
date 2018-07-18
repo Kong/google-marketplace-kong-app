@@ -1,0 +1,32 @@
+application_api_version: v1beta1
+properties:
+  name:
+    type: string
+    x-google-marketplace:
+      type: NAME
+  namespace:
+    type: string
+    x-google-marketplace:
+      type: NAMESPACE
+  imageKongCE:
+    type: string
+    default: $REGISTRY:$TAG
+    x-google-marketplace:
+      type: IMAGE
+  imagePostgres:
+    type: string
+    default: $REGISTRY/postgres:$TAG
+    x-google-marketplace:
+      type: IMAGE
+  dbPassword:
+    type: string
+    x-google-marketplace:
+      type: GENERATED_PASSWORD
+      generatedPassword:
+        length: 16
+required:
+- name
+- namespace
+- imageKongCE
+- imagePostgres
+- dbPassword

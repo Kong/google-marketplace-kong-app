@@ -1,0 +1,174 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $name-db-secret
+  labels:
+    app.kubernetes.io/name: "$name"
+    app.kubernetes.io/component: db-secret
+type: Opaque
+data:
+  password: "$dbPassword"
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: $name-postgres
+  labels: &PostgresDeploymentLabels
+    app.kubernetes.io/name: "$name"
+    app.kubernetes.io/component: kong-ce-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *PostgresDeploymentLabels
+  template:
+    metadata:
+      labels: *PostgresDeploymentLabels
+    spec:
+      containers:
+      - image: $imagePostgres
+        name: postgres
+        env:
+        - name: "POSTGRES_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: $name-db-secret
+              key: password
+        - name: "POSTGRES_USER"
+          value: "kong"
+        - name: "POSTGRES_DB"
+          value: "kong"
+        - name: "PGDATA"
+          value: "/var/lib/postgresql/data/pgdata"
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql
+          subPath: data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: $name-postgres-pvc
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: $name-postgres-pvc
+  labels:
+    app.kubernetes.io/name: "$name"
+    app.kubernetes.io/component: kong-ce-postgres
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: standard
+  resources:
+    requests:
+      #TODO: make configurable
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $name-postgres-svc
+  labels:
+    app.kubernetes.io/name: "$name"
+    app.kubernetes.io/component: kong-ce-postgres
+spec:
+  ports:
+  - port: 5432
+  selector:
+    app.kubernetes.io/name: $name
+    app.kubernetes.io/component: kong-ce-postgres
+  clusterIP: None
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: $name-kong-ce
+  labels: &KongCEDeploymentLabels
+    app.kubernetes.io/name: "$name"
+    app.kubernetes.io/component: kong-ce-node
+spec:
+  replicas: 1
+  selector:
+    matchLabels: *KongCEDeploymentLabels
+  template:
+    metadata:
+      labels: *KongCEDeploymentLabels
+    spec:
+      initContainers:
+      - image: $imageKongCE
+        name: kong-ce-migrations
+        command: ['sh', '-c', 'until kong migrations up; do echo waiting for database and migrations; sleep 2; done;']
+        env:
+        - name: KONG_PG_HOST
+          value: $name-postgres-svc
+        - name: KONG_PG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: $name-db-secret
+              key: password
+        - name: KONG_PG_USER
+          value: kong
+      containers:
+      - image: $imageKongCE
+        name: kong-ce-node
+        env:
+        - name: KONG_PG_HOST
+          value: $name-postgres-svc
+        - name: KONG_PG_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: $name-db-secret
+              key: password
+        - name: KONG_PG_USER
+          value: kong
+        - name: KONG_ADMIN_LISTEN
+          value: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+        ports:
+        - name: http-proxy
+          containerPort: 8000
+        - name: https-proxy
+          containerPort: 8443
+        - name: http-admin
+          containerPort: 8001
+        - name: https-admin
+          containerPort: 8444
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $name-kong-ce-proxy-svc
+  labels:
+    app.kubernetes.io/name: "$name"
+    app.kubernetes.io/component: kong-ce-node
+spec:
+  ports:
+  - name: http-proxy
+    port: 80
+    targetPort: http-proxy
+  - name: https-proxy
+    port: 443
+    targetPort: https-proxy
+  selector:
+    app.kubernetes.io/name: "$name"
+    app.kubernetes.io/component: kong-ce-node
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: $name-kong-ce-admin-svc
+  labels:
+    app.kubernetes.io/name: "$name"
+    app.kubernetes.io/component: kong-ce-node
+spec:
+  ports:
+  - name: http-admin
+    port: 8001
+    targetPort: http-admin
+  - name: https-admin
+    port: 8444
+    targetPort: https-admin
+  selector:
+    app.kubernetes.io/name: "$name"
+    app.kubernetes.io/component: kong-ce-node
+  type: LoadBalancer
