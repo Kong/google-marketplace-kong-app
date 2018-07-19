@@ -170,5 +170,4 @@ spec:
   selector:
     app.kubernetes.io/name: "$name"
     app.kubernetes.io/component: kong-ce-node
-  type: LoadBalancer
-  #type: ClusterIP
+  type: ClusterIP

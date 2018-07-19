@@ -72,9 +72,11 @@ you can override them by exporting the appropriate environment variables:
 ```shell
 export REGISTRY=gcr.io/your-registry
 export NAMESPACE=your-namespace
-export APP_INSTANCE_NAME=your-installation-name
-export APP_TAG=your-tag
+export NAME=your-installation-name     #default "kong-1"
+export TAG=your-tag                    #default "latest"
 ```
+
+The `TAG` should be a valid Kong CE version number, eg. `TAG=0.14.0`
 
 # Marketplace Integration Requirements
 
