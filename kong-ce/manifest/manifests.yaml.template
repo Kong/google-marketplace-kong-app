@@ -61,7 +61,6 @@ spec:
   storageClassName: standard
   resources:
     requests:
-      #TODO: make configurable
       storage: 5Gi
 ---
 apiVersion: v1
@@ -172,3 +171,4 @@ spec:
     app.kubernetes.io/name: "$name"
     app.kubernetes.io/component: kong-ce-node
   type: LoadBalancer
+  #type: ClusterIP

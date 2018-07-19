@@ -31,14 +31,26 @@ metadata:
     marketplace.cloud.google.com/verification: test
 data:
   run.sh: |-
-    #TODO: update this test script
     set -x
-    endpoint="http://${name}-wordpress-svc"
+    endpoint="http://${name}-kong-ce-proxy-svc"
+    expected=404
     echo GET $endpoint
     http_status_code=$(curl -o /dev/null -s -w "%{http_code}\n" $endpoint)
-    echo "Expected http status code: 302"
-    echo "Actual http status code: $http_status_code"
-    if [[ "$http_status_code" == "302" ]]; then
+    echo "Expected proxy http status code: $expected"
+    echo "Actual proxy http status code: $http_status_code"
+    if [[ "$http_status_code" == "$expected" ]]; then
+      echo SUCCESS
+    else
+      echo FAILURE
+      exit 1
+    fi
+    endpoint="http://${name}-kong-ce-admin-svc:8001"
+    expected=200
+    echo GET $endpoint
+    http_status_code=$(curl -o /dev/null -s -w "%{http_code}\n" $endpoint)
+    echo "Expected admin http status code: $expected"
+    echo "Actual admin http status code: $http_status_code"
+    if [[ "$http_status_code" == "$expected" ]]; then
       echo SUCCESS
     else
       echo FAILURE

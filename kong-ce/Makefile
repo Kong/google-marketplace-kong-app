@@ -1,4 +1,8 @@
 TAG ?= latest
+NAME ?= kong-1
+# NAMESPACE and REGISTRY are auto collected from the gcloud/kubectl
+# configuration if not provided
+
 
 # Defines shared common properties
 # Macros:
@@ -32,11 +36,6 @@ include ../vendor/marketplace-tools/gcloud.Makefile
 #   .build/marketplace/delete_deprecated
 include ../vendor/marketplace-tools/marketplace.Makefile
 
-# ubbagent is the metering agent.
-# ubbagent.Makefile provides ".build/ubbagent/ubbagent"
-# target to build the ubbagent image locally.
-#include ../vendor/marketplace-tools/ubbagent.Makefile     removed, not used
-
 # Class of targets that track variables for being defined
 # and trigger rebuilds on changes of their values.
 # Targets:
@@ -60,22 +59,12 @@ include ../vendor/marketplace-tools/var.Makefile
 include ../vendor/marketplace-tools/app.Makefile
 
 APP_DEPLOYER_IMAGE ?= $(REGISTRY)/kong/kong-ce/deployer:$(TAG)
-NAME ?= kong-ce
 APP_PARAMETERS ?= { \
   "name": "$(NAME)", \
   "namespace": "$(NAMESPACE)", \
   "imageKongCE": "$(REGISTRY)/kong/kong-ce:$(TAG)", \
   "imagePostgres": "$(REGISTRY)/kong/kong-ce/postgres:$(TAG)" \
 }
-#APP_PARAMETERS ?= { \
-#  "name": "$(NAME)", \
-#  "namespace": "$(NAMESPACE)", \
-#  "imageWordpress": "$(REGISTRY)/example/wordpress:$(TAG)", \
-#  "imageInit": "$(REGISTRY)/example/wordpress/init:$(TAG)", \    removed, not used
-#  "imageMysql": "$(REGISTRY)/example/wordpress/mysql:$(TAG)", \
-#  "imageUbbagent": "$(REGISTRY)/example/wordpress/ubbagent:$(TAG)", \   removed, not used
-#  "reportingSecret": "$(NAME)-reporting-secret" \          removed, not used
-#}
 TESTER_IMAGE ?= $(REGISTRY)/kong/kong-ce/tester:$(TAG)
 APP_TEST_PARAMETERS ?= { \
   "imageTester": "$(TESTER_IMAGE)" \
@@ -87,12 +76,6 @@ app/build:: .build/kong-ce/deployer \
             .build/kong-ce/postgres \
             .build/kong-ce/tester \
             .build/kong-ce/kong-ce
-#app/build:: .build/wordpress/deployer \
-#            .build/wordpress/init \        removed, not used
-#            .build/wordpress/mysql \
-#            .build/wordpress/tester \
-#            .build/wordpress/ubbagent \    removed, not used
-#            .build/wordpress/wordpress
 
 
 .build/kong-ce: | .build
@@ -122,9 +105,9 @@ app/build:: .build/kong-ce/deployer \
 # disable this one for now, unknown what image this is: cosmintitei/bash-curl
 .build/kong-ce/tester:
 	$(call print_target, $@)
-	#docker pull cosmintitei/bash-curl
-	#docker tag cosmintitei/bash-curl "$(TESTER_IMAGE)"
-	#docker push "$(TESTER_IMAGE)"
+	docker pull cosmintitei/bash-curl
+	docker tag cosmintitei/bash-curl "$(TESTER_IMAGE)"
+	docker push "$(TESTER_IMAGE)"
 	@touch "$@"
 
 # Simulate building of primary app image. Actually just copying public Kong CE
@@ -138,17 +121,6 @@ app/build:: .build/kong-ce/deployer \
 	docker push "$(REGISTRY)/kong/kong-ce:$(TAG)"
 	@touch "$@"
 
-# Build secondary app image.
-#.build/wordpress/init: init/* \                             not using initContainers
-#                       .build/var/REGISTRY \
-#                       .build/var/TAG \
-#                       | .build/wordpress
-#	$(call print_target, $@)
-#	cd init \
-#	&& docker build --tag "$(REGISTRY)/example/wordpress/init:$(TAG)" .
-#	docker push "$(REGISTRY)/example/wordpress/init:$(TAG)"
-#	@touch "$@"
-
 # Relocate public postgres image to $REGISTRY.
 .build/kong-ce/postgres: .build/var/REGISTRY \
                          .build/var/TAG \
@@ -159,12 +131,3 @@ app/build:: .build/kong-ce/deployer \
 	docker push "$(REGISTRY)/kong/kong-ce/postgres:$(TAG)"
 	@touch "$@"
 
-# Relocate ubbagent image to $REGISTRY.
-#.build/wordpress/ubbagent: .build/ubbagent/ubbagent \             not using metering
-#                           .build/var/REGISTRY \
-#                           .build/var/TAG \
-#                           | .build/wordpress
-#	$(call print_target, $@)
-#	docker tag "gcr.io/cloud-marketplace-tools/ubbagent" "$(REGISTRY)/example/wordpress/ubbagent:$(TAG)"
-#	docker push "$(REGISTRY)/example/wordpress/ubbagent:$(TAG)"
-#	@touch "$@"
