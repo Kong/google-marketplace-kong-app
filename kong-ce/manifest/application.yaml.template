@@ -32,8 +32,31 @@ spec:
     notes: |-
       # Expose the Kong admin interface
 
-      By default the Kong admin port is not accessible. Run the
-      following command....
+      By default the Kong admin port does not have an external IP. Run the
+      following command to expose an external IP:
+      
+      ```
+      kubectl patch svc "$name-kong-ce-admin-svc" \
+        --namespace "$namespace" \
+        -p '{"spec": {"type": "LoadBalancer"}}'
+      ```
+
+      # accessing Kong
+
+      Get the external ip and port info like this:
+      ```
+      export PROXY_IP=$(kubectl get \
+        --namespace=$namespace svc/$name-kong-ce-proxy-svc \
+        -o go-template='{{(index .status.loadBalancer.ingress 0).ip}}')
+      export PROXY_PORT_HTTP=80
+      export PROXY_PORT_HTTPS=443
+
+      export ADMIN_IP=$(kubectl get \
+        --namespace=$namespace svc/$name-kong-ce-admin-svc \
+        -o go-template='{{(index .status.loadBalancer.ingress 0).ip}}')
+      export ADMIN_PORT_HTTP=8000
+      export ADMIN_PORT_HTTPS=8444
+      ````
   selector:
     matchLabels:
       app.kubernetes.io/name: "$name"
