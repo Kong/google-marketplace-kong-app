@@ -126,8 +126,8 @@ app/build:: .build/kong-ce/deployer \
                          .build/var/TAG \
                          | .build/kong-ce
 	$(call print_target, $@)
-	docker pull postgres:9.6
-	docker tag postgres:9.6 "$(REGISTRY)/kong/kong-ce/postgres:$(TAG)"
+	gcloud docker -- pull launcher.gcr.io/google/postgresql9:9.6
+	docker tag launcher.gcr.io/google/postgresql9:9.6 "$(REGISTRY)/kong/kong-ce/postgres:$(TAG)"
 	docker push "$(REGISTRY)/kong/kong-ce/postgres:$(TAG)"
 	@touch "$@"
 
