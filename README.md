@@ -3,7 +3,7 @@
 This repository contains the source of the Google Kubernetes Cloud
 launcher app for Kong.
 
-For now it will only hold a Kong-CE version.
+For now it will only hold a Kong-CE version (Community Edition).
 
 The repo utilizes the [marketplace-k8s-app-tools](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools)
 repository, which contains utilities for the Marketplace.
@@ -78,46 +78,47 @@ export TAG=your-tag                    #default "latest"
 
 The `TAG` should be a valid Kong CE version number, eg. `TAG=0.14.0`
 
-# Marketplace Integration Requirements
+# Basic usage
 
-Briefly, apps must support two modes of installation:
-- **CLI**: via a Kubernetes client tool like kubectl or helm
-- **Marketplace UI**: via the deployment container ("deployer") mechanism.
+## Connecting to an admin console (if applicable)
+## Connecting a client tool and running a sample command (if applicable)
+## Modifying usernames and passwords
+## Enabling ingress and installing TLS certs (if applicable)
 
-A few additional Marketplace requirements are described below.
+# Backup and restore
 
-## Application resource and controller
+Kong relies on the underlying datastore (Postgresql in this deployment) for
+storing its configuration. You can use standard database tools to
+clone/backup/restore your data.
 
-Apps must supply an Application resource conforming to the
-[Kubernetes community proposal](https://github.com/kubernetes/community/pull/1629).
-The proposal describes the Application resource, as well as a corresponding
-controller that would be responsible for application-generic functionality such
-as assigning owner references to application components.
+# Image updates
+## Updating application images, assuming patch/minor updates
 
-**Temporary Note**: the public source repository associated with the proposal is
-not yet available. In the interim, we have an equivalent CRD and controller in
-the marketplace-k8s-app-tools repository. Expect changes once the public repo is
-available.
+# Scaling
 
-## Deployer
+When needing to scale the application, the only component to scale is the
+Kong node.
 
-Apps must supply a deployment container image ("deployer") which is used in
-UI-based deployment. This image should extend from one of the base images
-provided in the marketplace-k8s-app-tools repository.
+For example:
 
-# Kong identifiers
+```shell
+export NAME=your-installation-name
+export NAMESPACE=your-namespace
 
-## Overall
+kubectl scale deployment $NAME-kong-ce \
+  --namespace=$NAMESPACE --replicas=5
+```
 
-- GCE project: `kong-206419`
-- Partner id: `kong`
-- Product id: `kong-ce`
-- Partner name: `Kong Inc.`
+# Deletion
 
-## Container images
+The application can be deleted as mentioned in the [Installing] paragraph,
+by running the following command:
 
-Container images will be pushed to the registry `gcr.io/kong-206419/` (this prefix is 
-automatically derived from the local `gcloud` and `kubectl` configurations).
+```shell
+make app/uninstall
+```
 
-- `kong/kong-ce`
-- `kong/kong-ce/postgres`
+## Orphaned resources after deletion
+
+When the application is deleted the PVC (persistent volume claim) for the
+database storage will stay behind orphaned. It can be deleted manually.
