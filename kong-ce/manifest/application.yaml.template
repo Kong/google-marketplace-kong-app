@@ -15,7 +15,7 @@ spec:
     type: Kong CE
     version: '0.1'
     description: |-
-      The most popular open source API gateway.
+      The world's most-popular open source API gateway.
 
       # More
       Community support is available on
@@ -30,10 +30,10 @@ spec:
     - description: Getting Started
       url: https://docs.konghq.com/
     notes: |-
-      # Expose the Kong admin interface
+      # Expose the Kong Admin interface
 
-      By default the Kong admin port does not have an external IP. Run the
-      following command to expose an external IP:
+      By default the [Kong Admin API](https://docs.konghq.com/latest/admin-api/) does not have an external IP. Run the
+      following command to expose an external IP (this make take a few minutes to complete):
       
       ```
       kubectl patch svc "$name-kong-ce-admin-svc" \
@@ -43,7 +43,7 @@ spec:
 
       # Accessing Kong
 
-      Get the external ip and port info like this:
+      Get Kong's external IPs and port info like this:
       ```
       export PROXY_IP=$(kubectl get \
         --namespace=$namespace svc/$name-kong-ce-proxy-svc \
