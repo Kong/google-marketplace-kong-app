@@ -33,7 +33,7 @@ spec:
       # Expose the Kong admin interface
 
       By default the Kong admin port does not have an external IP. Run the
-      following command to expose an external IP:
+      following command to expose an external IP (this make take a few minutes to complete):
       
       ```
       kubectl patch svc "$name-kong-ce-admin-svc" \
