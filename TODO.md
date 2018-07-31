@@ -1,7 +1,7 @@
 TODO:
 =====
 
-- [ ] `application.yaml.template`: configure the `componentKinds` properly
+- [X] `application.yaml.template`: configure the `componentKinds` properly
 - [X] set up the `tester`
 - [ ] make more parameters configurable (DB size for example) `manifest.yaml.template`
 - [x] readme instructions

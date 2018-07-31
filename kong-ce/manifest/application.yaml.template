@@ -27,42 +27,28 @@ spec:
       email: thijs@konghq.com
       url: https://github.com/kong
     links:
+    - description: Basic usage information
+      url: https://github.com/Kong/google-marketplace-kong-app
     - description: Getting started with Kong
       url: https://docs.konghq.com/
     notes: |-
-      # Expose the Kong Admin interface
+      Before being able to use Kong to proxy traffic and work its magic,
+      Kong must be configured. To do this you can use the RESTfull Management
+      API.
 
-      By default the [Kong admin API](https://docs.konghq.com/latest/admin-api/)
-      does not have an external IP. Run the following command to expose an
-      external IP (this may take a few minutes to complete):
-      
-      ```
-      kubectl patch svc "$name-kong-ce-admin-svc" \
-        --namespace "$namespace" \
-        -p '{"spec": {"type": "LoadBalancer"}}'
-      ```
+      For more information on operating Kong in the Google Marketplace see
+      [the readme](https://github.com/Kong/google-marketplace-kong-app/blob/master/README.md).
+      It contains information on accessing the Management API, installing,
+      updating, and scaling the Kong configuration.
 
-      # Accessing Kong
-
-      Get Kong's external IPs and port info like this:
-      ```
-      export PROXY_IP=$(kubectl get \
-        --namespace=$namespace svc/$name-kong-ce-proxy-svc \
-        -o go-template='{{(index .status.loadBalancer.ingress 0).ip}}')
-      export PROXY_HTTP=$PROXY_IP:80
-      export PROXY_HTTPS=$PROXY_IP:443
-
-      export ADMIN_IP=$(kubectl get \
-        --namespace=$namespace svc/$name-kong-ce-admin-svc \
-        -o go-template='{{(index .status.loadBalancer.ingress 0).ip}}')
-      export ADMIN_HTTP=$ADMIN_IP:8000
-      export ADMIN_HTTPS=$ADMIN_IP:8444
-      ````
+      To get started configuring Kong first make sure to get access to the
+      Management API (see previous paragraph). Once you have access you can
+      follow [the quick start](https://docs.konghq.com/latest/getting-started/quickstart/)
+      to set up your first API.
   selector:
     matchLabels:
       app.kubernetes.io/name: "$name"
   componentKinds:
-  #TODO: update this
   - group: apps/v1beta2
     kind: Deployment
   - group: batch/v1

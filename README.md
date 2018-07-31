@@ -80,10 +80,61 @@ The `TAG` should be a valid Kong CE version number, eg. `TAG=0.14.0`
 
 # Basic usage
 
-## Connecting to an admin console (if applicable)
-## Connecting a client tool and running a sample command (if applicable)
-## Modifying usernames and passwords
-## Enabling ingress and installing TLS certs (if applicable)
+## Connecting to the Admin API to configure Kong
+
+The Admin API is not exposed by default. A Service has been created for it,
+but defined as `ClusterIP` (and hence not accessible from outside the K8s
+cluster).
+
+So to configure Kong you can either open it up, or configure Kong from within the
+cluster.
+
+To access it from within the cluster, eg. through the Kong node itself:
+
+```shell
+export NAME=your-installation-name
+export NAMESPACE=your-namespace
+export KONG_NODE=$(kubectl get pods --namespace=$NAMESPACE \
+   --selector=app.kubernetes.io/component=kong-ce-node,app.kubernetes.io/name=$NAME \
+   -o go-template='{{(index .items 0).metadata.name}}')
+
+kubectl exec -it $KONG_NODE curl http://localhost:8001
+```
+
+Alternatively you can open up the admin port by patching the Service to a
+LoadBalancer type instead of a ClusterIP:
+
+**WARNING**: Exposing the Admin API like this exposes it to everybody! So make
+sure to revert the change!
+
+```shell
+export NAME=your-installation-name
+export NAMESPACE=your-namespace
+
+kubectl patch svc $NAME-kong-ce-admin-svc \
+  --namespace $NAMESPACE \
+  -p '{"spec": {"type": "LoadBalancer"}}'
+```
+
+The LoadBalancer may take a few minutes to start. After that you can get access
+like this:
+
+```shell
+export NAME=your-installation-name
+export NAMESPACE=your-namespace
+
+export ADMIN_IP=$(kubectl get \
+  --namespace=$NAMESPACE svc/$NAME-kong-ce-admin-svc \
+  -o go-template='{{(index .status.loadBalancer.ingress 0).ip}}')
+export ADMIN_HTTP=$ADMIN_IP:8001
+export ADMIN_HTTPS=$ADMIN_IP:8444
+
+curl http://$ADMIN_HTTP/
+```
+
+Since there now is access to the Kong configuration, you can follow the
+[Kong quick start guide](https://docs.konghq.com/latest/getting-started/quickstart/)
+from here. Just invoke the `curl` commands as described above.
 
 # Backup and restore
 
@@ -92,7 +143,24 @@ storing its configuration. You can use standard database tools to
 clone/backup/restore your data.
 
 # Image updates
-## Updating application images, assuming patch/minor updates
+
+To update the Kong CE version running in the application, you can update
+the image used to run it.
+
+**WARNING**: This assumes only patch updates (eg. 0.13.0 to 0.13.1), since
+minor updates (eg. 0.13.x to 0.14.x) are not compatible and require migrations.
+
+```shell
+export NEW_TAG=0.14.1
+export NAME=your-installation-name
+export NAMESPACE=your-namespace
+export IMAGE_NAME=$(kubectl get deployment \
+  --namespace=$NAMESPACE $NAME-kong-ce \
+  -o go-template='{{(index .spec.template.spec.containers 0).image}}' \
+  | cut -d':' -f1)
+
+kubectl set image --namespace=$NAMESPACE deployments/$NAME-kong-ce kong-ce-node=$IMAGE_NAME:$NEW_TAG
+```
 
 # Scaling
 
@@ -111,7 +179,7 @@ kubectl scale deployment $NAME-kong-ce \
 
 # Deletion
 
-The application can be deleted as mentioned in the [Installing] paragraph,
+The application can be deleted as mentioned in the [Installing paragraph](#installing),
 by running the following command:
 
 ```shell
