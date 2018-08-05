@@ -55,6 +55,16 @@ To delete the installation, run:
 make app/uninstall
 ```
 
+To create the tags for a new version for the current track, run:
+
+```shell
+export TAG=0.14.0
+export MAJOR_TAG=0.14
+make app/major
+```
+
+The above will re-tag all the `0.14.0` images as `0.14`.
+ 
 ## Overriding context values (Optional)
 
 By default `make` derives docker registry and k8s namespace
@@ -98,11 +108,11 @@ export KONG_NODE=$(kubectl get pods --namespace=$NAMESPACE \
    --selector=app.kubernetes.io/component=kong-ce-node,app.kubernetes.io/name=$NAME \
    -o go-template='{{(index .items 0).metadata.name}}')
 
-kubectl exec -it $KONG_NODE curl http://localhost:8001
+kubectl exec -it $KONG_NODE curl http://localhost:8001/
 ```
 
 Alternatively you can open up the admin port by patching the Service to a
-LoadBalancer type instead of a ClusterIP:
+`LoadBalancer` type instead of a `ClusterIP`:
 
 **WARNING**: Exposing the Admin API like this exposes it to everybody! So make
 sure to revert the change!

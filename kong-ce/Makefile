@@ -70,6 +70,7 @@ APP_TEST_PARAMETERS ?= { \
   "imageTester": "$(TESTER_IMAGE)" \
 }
 
+
 # Extend the target as defined in app.Makefile to
 # include real dependencies.
 app/build:: .build/kong-ce/deployer \
@@ -101,8 +102,24 @@ app/build:: .build/kong-ce/deployer \
 	docker push "$(APP_DEPLOYER_IMAGE)"
 	@touch "$@"
 
+# Export current tag as major version for this 'track', by retagging the images
+app/major:
+	$(call print_target, $@)
+	# TODO: add test whether MAJOR_TAG has been set, or auto-detect from TAG?
+	docker pull "$(REGISTRY)/kong/kong-ce/deployer:$(TAG)"
+	docker tag "$(REGISTRY)/kong/kong-ce/deployer:$(TAG)" "$(REGISTRY)/kong/kong-ce/deployer:$(MAJOR_TAG)"
+	docker push "$(REGISTRY)/kong/kong-ce/deployer:$(MAJOR_TAG)"
+	docker pull "$(REGISTRY)/kong/kong-ce/tester:$(TAG)"
+	docker tag "$(REGISTRY)/kong/kong-ce/tester:$(TAG)" "$(REGISTRY)/kong/kong-ce/tester:$(MAJOR_TAG)"
+	docker push "$(REGISTRY)/kong/kong-ce/tester:$(MAJOR_TAG)"
+	docker pull "$(REGISTRY)/kong/kong-ce/postgres:$(TAG)"
+	docker tag "$(REGISTRY)/kong/kong-ce/postgres:$(TAG)" "$(REGISTRY)/kong/kong-ce/postgres:$(MAJOR_TAG)"
+	docker push "$(REGISTRY)/kong/kong-ce/postgres:$(MAJOR_TAG)"
+	docker pull "$(REGISTRY)/kong/kong-ce:$(TAG)"
+	docker tag "$(REGISTRY)/kong/kong-ce:$(TAG)" "$(REGISTRY)/kong/kong-ce:$(MAJOR_TAG)"
+	docker push "$(REGISTRY)/kong/kong-ce:$(MAJOR_TAG)"
 
-# disable this one for now, unknown what image this is: cosmintitei/bash-curl
+# build the tester image
 .build/kong-ce/tester:
 	$(call print_target, $@)
 	docker pull cosmintitei/bash-curl
