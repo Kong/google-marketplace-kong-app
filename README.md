@@ -27,7 +27,7 @@ See [Getting Started](https://github.com/GoogleCloudPlatform/marketplace-k8s-app
 
 ## Installing
 
-Run the following commands from within `kong-ce` folder.
+Run the following commands from within the `kong-ce` folder.
 
 Do a one time setup for application CRD:
 
@@ -54,16 +54,6 @@ To delete the installation, run:
 ```shell
 make app/uninstall
 ```
-
-To create the tags for a new version for the current track, run:
-
-```shell
-export TAG=0.14.0
-export MAJOR_TAG=0.14
-make app/major
-```
-
-The above will re-tag all the `0.14.0` images as `0.14`.
  
 ## Overriding context values (Optional)
 
@@ -83,10 +73,25 @@ you can override them by exporting the appropriate environment variables:
 export REGISTRY=gcr.io/your-registry
 export NAMESPACE=your-namespace
 export NAME=your-installation-name     #default "kong-1"
-export TAG=your-tag                    #default "latest"
+export TRACK=your-track                #default "0.14"
+export TRACK_MINOR=minor-version       #default "1"
 ```
 
-The `TAG` should be a valid Kong CE version number, eg. `TAG=0.14.0`
+The `TRACK` is the application track (sequence of compatible releases), eg. `TRACK=0.14`.
+The `TRACK_MINOR` is the minor version within the track version, eg. `TRACK_MINOR=1`.
+The combination of `TRACK`.`TRACK_MINOR` should be a valid Kong CE version number, eg. `0.14.1`.
+
+In the above example rolling out the app at track 0.14, will install Kong CE 0.14.1
+
+### Versioning notes
+
+- Building is assumed in chronological order, as the build version will always be tagged
+  as the track version. Eg. after building `0.14.0`, the track `0.14` will point to `0.14.0`.
+  So when building `0.14.1` and then `0.14.0` then the track will point to `0.14.0` and installs
+  will not get the latest version.
+- Since within a track there is compatibility, the images for "tester", "deployer", and "postgres" will
+  only be tagged by the track version (Eg. `0.14`). Only the Kong-CE image will be tagged by both
+  the track as well as the minor version (Eg. `0.14` and `0.14.1`.
 
 # Basic usage
 
@@ -158,18 +163,34 @@ To update the Kong CE version running in the application, you can update
 the image used to run it.
 
 **WARNING**: This assumes only patch updates (eg. 0.13.0 to 0.13.1), since
-minor updates (eg. 0.13.x to 0.14.x) are not compatible and require migrations.
+other updates (eg. 0.13.x to 0.14.x) are not compatible and require migrations.
 
 ```shell
-export NEW_TAG=0.14.1
 export NAME=your-installation-name
 export NAMESPACE=your-namespace
+
+# first check the current Kong version running
+export KONG_NODE=$(kubectl get pods --namespace=$NAMESPACE \
+   --selector=app.kubernetes.io/component=kong-ce-node,app.kubernetes.io/name=$NAME \
+   -o go-template='{{(index .items 0).metadata.name}}')
+kubectl exec -it $KONG_NODE curl http://localhost:8001/ | jq '.version'
+
+# get the image name
 export IMAGE_NAME=$(kubectl get deployment \
   --namespace=$NAMESPACE $NAME-kong-ce \
   -o go-template='{{(index .spec.template.spec.containers 0).image}}' \
   | cut -d':' -f1)
 
+# update the image to the new version
+export NEW_TAG=0.14.1
 kubectl set image --namespace=$NAMESPACE deployments/$NAME-kong-ce kong-ce-node=$IMAGE_NAME:$NEW_TAG
+
+# after the new images have been deployed and the old ones have been removed,
+# check the version again. The node may have changed, so fetch that first.
+export KONG_NODE=$(kubectl get pods --namespace=$NAMESPACE \
+   --selector=app.kubernetes.io/component=kong-ce-node,app.kubernetes.io/name=$NAME \
+   -o go-template='{{(index .items 0).metadata.name}}')
+kubectl exec -it $KONG_NODE curl http://localhost:8001/ | jq '.version'
 ```
 
 # Scaling
@@ -193,6 +214,9 @@ The application can be deleted as mentioned in the [Installing paragraph](#insta
 by running the following command:
 
 ```shell
+export NAME=your-installation-name
+export NAMESPACE=your-namespace
+
 make app/uninstall
 ```
 

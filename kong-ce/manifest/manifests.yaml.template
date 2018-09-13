@@ -28,6 +28,7 @@ spec:
       containers:
       - image: $imagePostgres
         name: postgres
+        imagePullPolicy: Always
         env:
         - name: "POSTGRES_PASSWORD"
           valueFrom:
@@ -96,6 +97,7 @@ spec:
       initContainers:
       - image: $imageKongCE
         name: kong-ce-migrations
+        imagePullPolicy: Always
         command: ['sh', '-c', 'until kong migrations up; do echo waiting for database and migrations; sleep 2; done;']
         env:
         - name: KONG_PG_HOST
@@ -110,6 +112,7 @@ spec:
       containers:
       - image: $imageKongCE
         name: kong-ce-node
+        imagePullPolicy: Always
         env:
         - name: KONG_PG_HOST
           value: $name-postgres-svc

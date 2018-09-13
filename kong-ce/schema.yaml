@@ -10,12 +10,12 @@ properties:
       type: NAMESPACE
   imageKongCE:
     type: string
-    default: $REGISTRY:$TAG
+    default: $REGISTRY:$TRACK
     x-google-marketplace:
       type: IMAGE
   imagePostgres:
     type: string
-    default: $REGISTRY/postgres:$TAG
+    default: $REGISTRY/postgres:$TRACK
     x-google-marketplace:
       type: IMAGE
   dbPassword:

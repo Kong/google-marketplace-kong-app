@@ -5,11 +5,11 @@ RUN apt-get update \
 
 ADD schema.yaml /tmp/schema.yaml
 
-# Provide registry prefix and tag for default values for images.
+# Provide registry prefix and track for default values for images.
 ARG REGISTRY
-ARG TAG
+ARG TRACK
 RUN cat /tmp/schema.yaml \
-    | env -i "REGISTRY=$REGISTRY" "TAG=$TAG" envsubst \
+    | env -i "REGISTRY=$REGISTRY" "TRACK=$TRACK" envsubst \
     > /tmp/schema.yaml.new \
     && mv /tmp/schema.yaml.new /tmp/schema.yaml
 
