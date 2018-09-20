@@ -1,99 +1,20 @@
 # Overview
 
 This repository contains the source of the Google Kubernetes Cloud
-launcher app for Kong.
+launcher app for Kong as well as instructions on how to use the app.
 
 For now it will only hold the Kong version (not Kong Enterprise).
 
-The repo utilizes the [marketplace-k8s-app-tools](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools)
-repository, which contains utilities for the Marketplace.
-The repository is submoduled under `/vendor/marketplace-tools`.
+There are 2 parts to this instruction:
 
-# Getting started
-
-## Updating git submodules
-
-You can run the following commands to make sure submodules
-are populated with proper code.
-
-```shell
-git submodule sync --recursive
-git submodule update --recursive --init --force
-```
-
-## Setting up your cluster and environment
-
-See [Getting Started](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools/blob/master/README.md#getting-started)
-
-## Installing
-
-Run the following commands from within the `kong` folder.
-
-Do a one time setup for application CRD:
-
-```shell
-make crd/install
-```
-
-Build and install Kong onto your cluster:
-
-```shell
-make app/install
-```
-
-This will build the containers and install the application. You can
-watch the kubernetes resources being created directly from your CLI
-by running:
-
-```shell
-make app/watch
-```
-
-To delete the installation, run:
-
-```shell
-make app/uninstall
-```
- 
-## Overriding context values (Optional)
-
-By default `make` derives docker registry and k8s namespace
-from your local configurations of `gcloud` and `kubectl`. 
-
-You can see these values using
-
-```shell
-kubectl config view
-```
-
-If you want to use values that differ from the local context of `gcloud` and `kubectl`,
-you can override them by exporting the appropriate environment variables:
-
-```shell
-export REGISTRY=gcr.io/your-registry
-export NAMESPACE=your-namespace
-export NAME=your-installation-name     #default "kong-1"
-export TRACK=your-track                #default "0.14"
-export TRACK_MINOR=minor-version       #default "1"
-```
-
-The `TRACK` is the application track (sequence of compatible releases), eg. `TRACK=0.14`.
-The `TRACK_MINOR` is the minor version within the track version, eg. `TRACK_MINOR=1`.
-The combination of `TRACK`.`TRACK_MINOR` should be a valid Kong version number, eg. `0.14.1`.
-
-In the above example rolling out the app at track 0.14, will install Kong 0.14.1
-
-### Versioning notes
-
-- Building is assumed in chronological order, as the build version will always be tagged
-  as the track version. Eg. after building `0.14.0`, the track `0.14` will point to `0.14.0`.
-  So when building `0.14.1` and then `0.14.0` then the track will point to `0.14.0` and installs
-  will not get the latest version.
-- Since within a track there is compatibility, the images for "tester", "deployer", and "postgres" will
-  only be tagged by the track version (Eg. `0.14`). Only the Kong image will be tagged by both
-  the track as well as the minor version (Eg. `0.14` and `0.14.1`.
+1. [Basic usage of a Kong cluster installed as an app](#basic-usage)
+2. [Use this repo and build your own images and deployments](#building-your-own)
 
 # Basic usage
+
+Use the Google Marketplace to get your Kong installation installed.
+Once that is succesful, you can use the below command line examples to
+perform additional tasks.
 
 ## Connecting to the Admin API to configure Kong
 
@@ -151,19 +72,40 @@ Since there now is access to the Kong configuration, you can follow the
 [Kong quick start guide](https://docs.konghq.com/latest/getting-started/quickstart/)
 from here. Just invoke the `curl` commands as described above.
 
-# Backup and restore
+## Scaling
+
+When needing to scale the application, the only component to scale is the
+Kong node.
+
+For example:
+
+```shell
+export NAME=your-installation-name
+export NAMESPACE=your-namespace
+
+kubectl scale deployment $NAME-kong \
+  --namespace=$NAMESPACE --replicas=5
+```
+
+## Backup and restore
 
 Kong relies on the underlying datastore (Postgresql in this deployment) for
 storing its configuration. You can use standard database tools to
 clone/backup/restore your data.
 
-# Image updates
+## Deletion
+
+When the application is deleted the PVC (persistent volume claim) for the
+database storage will stay behind orphaned. It can be deleted manually.
+
+## Image updates
 
 To update the Kong version running in the application, you can update
 the image used to run it.
 
 **WARNING**: This assumes only patch updates (eg. 0.13.0 to 0.13.1), since
 other updates (eg. 0.13.x to 0.14.x) are not compatible and require migrations.
+See also the information at [overriding context values](#overriding-context-values).
 
 ```shell
 export NAME=your-installation-name
@@ -193,34 +135,86 @@ export KONG_NODE=$(kubectl get pods --namespace=$NAMESPACE \
 kubectl exec -it $KONG_NODE curl http://localhost:8001/ | jq '.version'
 ```
 
-# Scaling
+# Building your own
 
-When needing to scale the application, the only component to scale is the
-Kong node.
+This section explains how to use this repository to build and deploy Kong
+manually using the makefiles.
 
-For example:
+The repo utilizes the [marketplace-k8s-app-tools](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools)
+repository, which contains utilities for the Marketplace.
+The repository is submoduled under `/vendor/marketplace-tools`.
+
+## Updating git submodules
+
+You can run the following commands to make sure submodules
+are populated with proper code.
 
 ```shell
-export NAME=your-installation-name
-export NAMESPACE=your-namespace
-
-kubectl scale deployment $NAME-kong \
-  --namespace=$NAMESPACE --replicas=5
+git submodule sync --recursive
+git submodule update --recursive --init --force
 ```
 
-# Deletion
+## Setting up your cluster and environment
 
-The application can be deleted as mentioned in the [Installing paragraph](#installing),
-by running the following command:
+See [Getting Started](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools/blob/master/README.md#getting-started)
+
+## Installing
+
+Run the following commands from within the `kong` folder.
+
+Do a one time setup for application CRD:
 
 ```shell
-export NAME=your-installation-name
-export NAMESPACE=your-namespace
+make crd/install
+```
 
+Build and install Kong onto your cluster:
+
+```shell
+make app/install
+```
+
+To delete the installation, run:
+
+```shell
 make app/uninstall
 ```
+ 
+## Overriding context values
 
-## Orphaned resources after deletion
+By default `make` derives docker registry and k8s namespace
+from your local configurations of `gcloud` and `kubectl`. 
 
-When the application is deleted the PVC (persistent volume claim) for the
-database storage will stay behind orphaned. It can be deleted manually.
+You can see these values using
+
+```shell
+kubectl config view
+```
+
+If you want to use values that differ from the local context of `gcloud` and `kubectl`,
+you can override them by exporting the appropriate environment variables:
+
+```shell
+export REGISTRY=gcr.io/your-registry
+export NAMESPACE=your-namespace
+export NAME=your-installation-name     #default "kong-1"
+export TRACK=your-track                #default "0.14"
+export TRACK_MINOR=minor-version       #default "1"
+```
+
+The `TRACK` is the application track (sequence of compatible releases), eg. `TRACK=0.14`.
+The `TRACK_MINOR` is the minor version within the track version, eg. `TRACK_MINOR=1`.
+The combination of `TRACK`.`TRACK_MINOR` should be a valid Kong version number, eg. `0.14.1`.
+
+In the above example rolling out the app at track 0.14, will install Kong 0.14.1
+
+### Versioning notes
+
+- Building is assumed in chronological order, as the build version will always be tagged
+  as the track version. Eg. after building `0.14.0`, the track `0.14` will point to `0.14.0`.
+  So when building `0.14.1` and then `0.14.0` then the track will point to `0.14.0` and installs
+  will not get the latest version.
+- Since within a track there is compatibility, the images for "tester", "deployer", and "postgres" will
+  only be tagged by the track version (Eg. `0.14`). Only the Kong image will be tagged by both
+  the track as well as the minor version (Eg. `0.14` and `0.14.1`.
+
