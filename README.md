@@ -3,7 +3,7 @@
 This repository contains the source of the Google Kubernetes Cloud
 launcher app for Kong.
 
-For now it will only hold a Kong-CE version (Community Edition).
+For now it will only hold the Kong version (not Kong Enterprise).
 
 The repo utilizes the [marketplace-k8s-app-tools](https://github.com/GoogleCloudPlatform/marketplace-k8s-app-tools)
 repository, which contains utilities for the Marketplace.
@@ -27,7 +27,7 @@ See [Getting Started](https://github.com/GoogleCloudPlatform/marketplace-k8s-app
 
 ## Installing
 
-Run the following commands from within the `kong-ce` folder.
+Run the following commands from within the `kong` folder.
 
 Do a one time setup for application CRD:
 
@@ -35,7 +35,7 @@ Do a one time setup for application CRD:
 make crd/install
 ```
 
-Build and install Kong-CE onto your cluster:
+Build and install Kong onto your cluster:
 
 ```shell
 make app/install
@@ -79,9 +79,9 @@ export TRACK_MINOR=minor-version       #default "1"
 
 The `TRACK` is the application track (sequence of compatible releases), eg. `TRACK=0.14`.
 The `TRACK_MINOR` is the minor version within the track version, eg. `TRACK_MINOR=1`.
-The combination of `TRACK`.`TRACK_MINOR` should be a valid Kong CE version number, eg. `0.14.1`.
+The combination of `TRACK`.`TRACK_MINOR` should be a valid Kong version number, eg. `0.14.1`.
 
-In the above example rolling out the app at track 0.14, will install Kong CE 0.14.1
+In the above example rolling out the app at track 0.14, will install Kong 0.14.1
 
 ### Versioning notes
 
@@ -90,7 +90,7 @@ In the above example rolling out the app at track 0.14, will install Kong CE 0.1
   So when building `0.14.1` and then `0.14.0` then the track will point to `0.14.0` and installs
   will not get the latest version.
 - Since within a track there is compatibility, the images for "tester", "deployer", and "postgres" will
-  only be tagged by the track version (Eg. `0.14`). Only the Kong-CE image will be tagged by both
+  only be tagged by the track version (Eg. `0.14`). Only the Kong image will be tagged by both
   the track as well as the minor version (Eg. `0.14` and `0.14.1`.
 
 # Basic usage
@@ -110,7 +110,7 @@ To access it from within the cluster, eg. through the Kong node itself:
 export NAME=your-installation-name
 export NAMESPACE=your-namespace
 export KONG_NODE=$(kubectl get pods --namespace=$NAMESPACE \
-   --selector=app.kubernetes.io/component=kong-ce-node,app.kubernetes.io/name=$NAME \
+   --selector=app.kubernetes.io/component=kong-node,app.kubernetes.io/name=$NAME \
    -o go-template='{{(index .items 0).metadata.name}}')
 
 kubectl exec -it $KONG_NODE curl http://localhost:8001/
@@ -126,7 +126,7 @@ sure to revert the change!
 export NAME=your-installation-name
 export NAMESPACE=your-namespace
 
-kubectl patch svc $NAME-kong-ce-admin-svc \
+kubectl patch svc $NAME-kong-admin-svc \
   --namespace $NAMESPACE \
   -p '{"spec": {"type": "LoadBalancer"}}'
 ```
@@ -139,7 +139,7 @@ export NAME=your-installation-name
 export NAMESPACE=your-namespace
 
 export ADMIN_IP=$(kubectl get \
-  --namespace=$NAMESPACE svc/$NAME-kong-ce-admin-svc \
+  --namespace=$NAMESPACE svc/$NAME-kong-admin-svc \
   -o go-template='{{(index .status.loadBalancer.ingress 0).ip}}')
 export ADMIN_HTTP=$ADMIN_IP:8001
 export ADMIN_HTTPS=$ADMIN_IP:8444
@@ -159,7 +159,7 @@ clone/backup/restore your data.
 
 # Image updates
 
-To update the Kong CE version running in the application, you can update
+To update the Kong version running in the application, you can update
 the image used to run it.
 
 **WARNING**: This assumes only patch updates (eg. 0.13.0 to 0.13.1), since
@@ -171,24 +171,24 @@ export NAMESPACE=your-namespace
 
 # first check the current Kong version running
 export KONG_NODE=$(kubectl get pods --namespace=$NAMESPACE \
-   --selector=app.kubernetes.io/component=kong-ce-node,app.kubernetes.io/name=$NAME \
+   --selector=app.kubernetes.io/component=kong-node,app.kubernetes.io/name=$NAME \
    -o go-template='{{(index .items 0).metadata.name}}')
 kubectl exec -it $KONG_NODE curl http://localhost:8001/ | jq '.version'
 
 # get the image name
 export IMAGE_NAME=$(kubectl get deployment \
-  --namespace=$NAMESPACE $NAME-kong-ce \
+  --namespace=$NAMESPACE $NAME-kong \
   -o go-template='{{(index .spec.template.spec.containers 0).image}}' \
   | cut -d':' -f1)
 
 # update the image to the new version
 export NEW_TAG=0.14.1
-kubectl set image --namespace=$NAMESPACE deployments/$NAME-kong-ce kong-ce-node=$IMAGE_NAME:$NEW_TAG
+kubectl set image --namespace=$NAMESPACE deployments/$NAME-kong kong-node=$IMAGE_NAME:$NEW_TAG
 
 # after the new images have been deployed and the old ones have been removed,
 # check the version again. The node may have changed, so fetch that first.
 export KONG_NODE=$(kubectl get pods --namespace=$NAMESPACE \
-   --selector=app.kubernetes.io/component=kong-ce-node,app.kubernetes.io/name=$NAME \
+   --selector=app.kubernetes.io/component=kong-node,app.kubernetes.io/name=$NAME \
    -o go-template='{{(index .items 0).metadata.name}}')
 kubectl exec -it $KONG_NODE curl http://localhost:8001/ | jq '.version'
 ```
@@ -204,7 +204,7 @@ For example:
 export NAME=your-installation-name
 export NAMESPACE=your-namespace
 
-kubectl scale deployment $NAME-kong-ce \
+kubectl scale deployment $NAME-kong \
   --namespace=$NAMESPACE --replicas=5
 ```
 

@@ -16,7 +16,7 @@ metadata:
   name: $name-postgres
   labels: &PostgresDeploymentLabels
     app.kubernetes.io/name: "$name"
-    app.kubernetes.io/component: kong-ce-postgres
+    app.kubernetes.io/component: kong-postgres
 spec:
   replicas: 1
   selector:
@@ -56,7 +56,7 @@ metadata:
   name: $name-postgres-pvc
   labels:
     app.kubernetes.io/name: "$name"
-    app.kubernetes.io/component: kong-ce-postgres
+    app.kubernetes.io/component: kong-postgres
 spec:
   accessModes: [ReadWriteOnce]
   storageClassName: standard
@@ -70,33 +70,33 @@ metadata:
   name: $name-postgres-svc
   labels:
     app.kubernetes.io/name: "$name"
-    app.kubernetes.io/component: kong-ce-postgres
+    app.kubernetes.io/component: kong-postgres
 spec:
   ports:
   - port: 5432
   selector:
     app.kubernetes.io/name: $name
-    app.kubernetes.io/component: kong-ce-postgres
+    app.kubernetes.io/component: kong-postgres
   clusterIP: None
 ---
 apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
-  name: $name-kong-ce
-  labels: &KongCEDeploymentLabels
+  name: $name-kong
+  labels: &KongDeploymentLabels
     app.kubernetes.io/name: "$name"
-    app.kubernetes.io/component: kong-ce-node
+    app.kubernetes.io/component: kong-node
 spec:
   replicas: 1
   selector:
-    matchLabels: *KongCEDeploymentLabels
+    matchLabels: *KongDeploymentLabels
   template:
     metadata:
-      labels: *KongCEDeploymentLabels
+      labels: *KongDeploymentLabels
     spec:
       initContainers:
-      - image: $imageKongCE
-        name: kong-ce-migrations
+      - image: $imageKong
+        name: kong-migrations
         imagePullPolicy: Always
         command: ['sh', '-c', 'until kong migrations up; do echo waiting for database and migrations; sleep 2; done;']
         env:
@@ -110,8 +110,8 @@ spec:
         - name: KONG_PG_USER
           value: kong
       containers:
-      - image: $imageKongCE
-        name: kong-ce-node
+      - image: $imageKong
+        name: kong-node
         imagePullPolicy: Always
         env:
         - name: KONG_PG_HOST
@@ -138,10 +138,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: $name-kong-ce-proxy-svc
+  name: $name-kong-proxy-svc
   labels:
     app.kubernetes.io/name: "$name"
-    app.kubernetes.io/component: kong-ce-node
+    app.kubernetes.io/component: kong-node
 spec:
   ports:
   - name: http-proxy
@@ -152,16 +152,16 @@ spec:
     targetPort: https-proxy
   selector:
     app.kubernetes.io/name: "$name"
-    app.kubernetes.io/component: kong-ce-node
+    app.kubernetes.io/component: kong-node
   type: LoadBalancer
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: $name-kong-ce-admin-svc
+  name: $name-kong-admin-svc
   labels:
     app.kubernetes.io/name: "$name"
-    app.kubernetes.io/component: kong-ce-node
+    app.kubernetes.io/component: kong-node
 spec:
   ports:
   - name: http-admin
@@ -172,5 +172,5 @@ spec:
     targetPort: https-admin
   selector:
     app.kubernetes.io/name: "$name"
-    app.kubernetes.io/component: kong-ce-node
+    app.kubernetes.io/component: kong-node
   type: ClusterIP

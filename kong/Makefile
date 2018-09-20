@@ -1,6 +1,6 @@
 # TRACK is the published tag, so the tag for the currect track, this should be a Kong major version
 # TRACK_MINOR is the exact minor version to publish for the track
-# so the below uses Kong CE 0.14.1 and sets that as the version for track 0.14
+# so the below uses Kong 0.14.1 and sets that as the version for track 0.14
 TRACK ?= 0.14
 TRACK_MINOR ?= 1
 NAME ?= kong-1
@@ -65,16 +65,16 @@ include ../vendor/marketplace-tools/var.Makefile
 include ../vendor/marketplace-tools/app.Makefile
 
 $(info ---- TRACK = $(TRACK))
-$(info ---- TRACK_MINOR = $(TRACK_MINOR)     --- Kong CE $(TAG))
+$(info ---- TRACK_MINOR = $(TRACK_MINOR)     --- Kong $(TAG))
 
-APP_DEPLOYER_IMAGE ?= $(REGISTRY)/kong/kong-ce/deployer:$(TRACK)
+APP_DEPLOYER_IMAGE ?= $(REGISTRY)/kong/kong/deployer:$(TRACK)
 APP_PARAMETERS ?= { \
   "name": "$(NAME)", \
   "namespace": "$(NAMESPACE)", \
-  "imageKongCE": "$(REGISTRY)/kong/kong-ce:$(TRACK)", \
-  "imagePostgres": "$(REGISTRY)/kong/kong-ce/postgres:$(TRACK)" \
+  "imageKong": "$(REGISTRY)/kong/kong:$(TRACK)", \
+  "imagePostgres": "$(REGISTRY)/kong/kong/postgres:$(TRACK)" \
 }
-TESTER_IMAGE ?= $(REGISTRY)/kong/kong-ce/tester:$(TRACK)
+TESTER_IMAGE ?= $(REGISTRY)/kong/kong/tester:$(TRACK)
 APP_TEST_PARAMETERS ?= { \
   "imageTester": "$(TESTER_IMAGE)" \
 }
@@ -82,28 +82,28 @@ APP_TEST_PARAMETERS ?= { \
 
 # Extend the target as defined in app.Makefile to
 # include real dependencies.
-app/build:: .build/kong-ce/deployer \
-            .build/kong-ce/postgres \
-            .build/kong-ce/tester \
-            .build/kong-ce/kong-ce
+app/build:: .build/kong/deployer \
+            .build/kong/postgres \
+            .build/kong/tester \
+            .build/kong/kong
 
 
-.build/kong-ce: | .build
+.build/kong: | .build
 	mkdir -p "$@"
 
-.build/kong-ce/deployer: apptest/deployer/* \
-                         apptest/deployer/manifest/* \
-                         deployer/* \
-                         manifest/* \
-                         schema.yaml \
-                         .build/marketplace/deployer/envsubst \
-                         .build/var/APP_DEPLOYER_IMAGE \
-                         .build/var/REGISTRY \
-                         .build/var/TAG \
-                         | .build/kong-ce
+.build/kong/deployer: apptest/deployer/* \
+                      apptest/deployer/manifest/* \
+                      deployer/* \
+                      manifest/* \
+                      schema.yaml \
+                      .build/marketplace/deployer/envsubst \
+                      .build/var/APP_DEPLOYER_IMAGE \
+                      .build/var/REGISTRY \
+                      .build/var/TAG \
+                      | .build/kong
 	$(call print_target, $@)
 	docker build \
-	    --build-arg REGISTRY="$(REGISTRY)/kong/kong-ce" \
+	    --build-arg REGISTRY="$(REGISTRY)/kong/kong" \
 	    --build-arg TRACK="$(TRACK)" \
 	    --tag "$(APP_DEPLOYER_IMAGE)" \
 	    -f deployer/Dockerfile \
@@ -112,33 +112,33 @@ app/build:: .build/kong-ce/deployer \
 	@touch "$@"
 
 # build the tester image
-.build/kong-ce/tester:
+.build/kong/tester:
 	$(call print_target, $@)
 	docker pull cosmintitei/bash-curl
 	docker tag cosmintitei/bash-curl "$(TESTER_IMAGE)"
 	docker push "$(TESTER_IMAGE)"
 	@touch "$@"
 
-# Simulate building of primary app image. Actually just copying public Kong CE
+# Simulate building of primary app image. Actually just copying public Kong
 # image to local registry. Publish both as the track version (major version), and with the patch tag
-.build/kong-ce/kong-ce: .build/var/REGISTRY \
+.build/kong/kong: .build/var/REGISTRY \
                         .build/var/TAG \
-                        | .build/kong-ce
+                        | .build/kong
 	$(call print_target, $@)
 	docker pull "kong:$(TAG)"
-	docker tag "kong:$(TAG)" "$(REGISTRY)/kong/kong-ce:$(TAG)"
-	docker tag "kong:$(TAG)" "$(REGISTRY)/kong/kong-ce:$(TRACK)"
-	docker push "$(REGISTRY)/kong/kong-ce:$(TAG)"
-	docker push "$(REGISTRY)/kong/kong-ce:$(TRACK)"
+	docker tag "kong:$(TAG)" "$(REGISTRY)/kong/kong:$(TAG)"
+	docker tag "kong:$(TAG)" "$(REGISTRY)/kong/kong:$(TRACK)"
+	docker push "$(REGISTRY)/kong/kong:$(TAG)"
+	docker push "$(REGISTRY)/kong/kong:$(TRACK)"
 	@touch "$@"
 
 # Relocate public postgres image to $REGISTRY.
-.build/kong-ce/postgres: .build/var/REGISTRY \
+.build/kong/postgres: .build/var/REGISTRY \
                          .build/var/TAG \
-                         | .build/kong-ce
+                         | .build/kong
 	$(call print_target, $@)
 	gcloud docker -- pull launcher.gcr.io/google/postgresql9:9.6
-	docker tag launcher.gcr.io/google/postgresql9:9.6 "$(REGISTRY)/kong/kong-ce/postgres:$(TRACK)"
-	docker push "$(REGISTRY)/kong/kong-ce/postgres:$(TRACK)"
+	docker tag launcher.gcr.io/google/postgresql9:9.6 "$(REGISTRY)/kong/kong/postgres:$(TRACK)"
+	docker push "$(REGISTRY)/kong/kong/postgres:$(TRACK)"
 	@touch "$@"
 
