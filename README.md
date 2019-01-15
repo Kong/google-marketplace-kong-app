@@ -54,7 +54,7 @@ export KONG_NODE=$(kubectl get pods --namespace=$NAMESPACE \
    --selector=app.kubernetes.io/component=kong-node,app.kubernetes.io/name=$NAME \
    -o go-template='{{(index .items 0).metadata.name}}')
 
-kubectl exec -it $KONG_NODE curl http://localhost:8001/
+kubectl exec --namespace $NAMESPACE -it $KONG_NODE curl http://localhost:8001/
 ```
 
 ### Connect to Admin API from outside the cluster
